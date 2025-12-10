@@ -1,0 +1,9 @@
+# Backup files
+*backup*.html
+handymatches-complete.html
+handymatches (1).html
+handymatches (2).html
+
+# System files
+.DS_Store
+Thumbs.db

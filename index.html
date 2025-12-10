@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HandyMatches - Complete Platform</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        * { font-family: 'Inter', sans-serif; }
+        .modal-overlay { background: rgba(0,0,0,0.5); }
+        .btn-primary { background: #667eea; transition: all 0.3s; }
+        .btn-primary:hover { background: #5568d3; transform: translateY(-2px); }
+        .status-pending { background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .status-active { background: #d1fae5; color: #065f46; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .status-completed { background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .status-flagged { background: #fee2e2; color: #991b1b; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Shared Navigation Component
+        function Navigation({ onNavigate, currentPage }) {
+            return (
+                <header className="bg-white shadow-sm sticky top-0 z-50">
+                    <div className="max-w-7xl mx-auto px-4 py-4">
+                        <div className="flex justify-between items-center">
+                            <div onClick={() => onNavigate('landing')} className="text-2xl font-bold text-orange-500 cursor-pointer">HandyMatches</div>
+                            <nav className="hidden md:flex space-x-8">
+                                <a onClick={() => onNavigate('landing')} className={`cursor-pointer hover:text-orange-500 ${currentPage === 'landing' ? 'text-orange-500 font-semibold' : ''}`}>Home</a>
+                                <a onClick={() => onNavigate('about')} className={`cursor-pointer hover:text-orange-500 ${currentPage === 'about' ? 'text-orange-500 font-semibold' : ''}`}>About Us</a>
+                                <a onClick={() => onNavigate('gallery')} className={`cursor-pointer hover:text-orange-500 ${currentPage === 'gallery' ? 'text-orange-500 font-semibold' : ''}`}>Gallery</a>
+                                <a onClick={() => onNavigate('contact')} className={`cursor-pointer hover:text-orange-500 ${currentPage === 'contact' ? 'text-orange-500 font-semibold' : ''}`}>Contact</a>
+                                <a onClick={() => onNavigate('donate')} className={`cursor-pointer hover:text-orange-500 ${currentPage === 'donate' ? 'text-orange-500 font-semibold' : ''}`}>Donate</a>
+                                <a onClick={() => onNavigate('admin-dashboard')} className={`cursor-pointer hover:text-orange-500 ${currentPage === 'admin-dashboard' ? 'text-orange-500 font-semibold' : ''}`}>
+                                    <i className="fas fa-lock mr-1"></i>Admin
+                                </a>
+                            </nav>
+                            <button className="md:hidden">
+                                <i className="fas fa-bars text-xl"></i>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+            );
+        }
+
+        // Mock Database
+        const initialUsers = [
+            { id: 1, name: 'Eleanor Vance', email: 'eleanor@email.com', role: 'Volunteer', status: 'active', skills: ['Plumbing', 'Painting'], backgroundCheck: 'completed', joinDate: '2023-01-15', tasksCompleted: 12, avatar: '👨' },
+            { id: 2, name: 'David Chen', email: 'david@email.com', role: 'Resident', status: 'active', backgroundCheck: 'n/a', joinDate: '2023-03-20', avatar: '👨' },
+            { id: 3, name: 'Maria Garcia', email: 'maria@email.com', role: 'Volunteer', status: 'pending', skills: ['Gardening'], backgroundCheck: 'pending', joinDate: '2024-12-01', tasksCompleted: 0, avatar: '👩' },
+            { id: 4, name: 'Robert Miller', email: 'robert@email.com', role: 'Resident', status: 'active', backgroundCheck: 'n/a', joinDate: '2023-06-10', avatar: '👨' },
+            { id: 5, name: 'Sophie Williams', email: 'sophie@email.com', role: 'Volunteer', status: 'active', skills: ['Pet Care', 'Dog Walking'], backgroundCheck: 'completed', joinDate: '2023-08-05', tasksCompleted: 18, avatar: '👩' },
+            { id: 6, name: 'John Pending', email: 'john@email.com', role: 'Volunteer', status: 'pending', skills: ['Carpentry'], backgroundCheck: 'not_started', joinDate: '2024-12-08', tasksCompleted: 0, avatar: '👨' },
+        ];
+
+        function App() {
+            const [view, setView] = useState('landing');
+            const [users, setUsers] = useState(initialUsers);
+            const [settings, setSettings] = useState({
+                autoApprovePhotos: true,
+                requireBackgroundCheck: true
+            });
+
+            const contextValue = { users, setUsers, settings, setSettings };
+
+            const views = {
+                landing: <LandingPage onNavigate={setView} />,
+                'volunteer-signup': <VolunteerSignup onNavigate={setView} users={users} setUsers={setUsers} />,
+                'resident-request': <ResidentRequest onNavigate={setView} />,
+                'resident-dashboard': <ResidentDashboard onNavigate={setView} />,
+                'admin-dashboard': <AdminDashboard onNavigate={setView} users={users} setUsers={setUsers} settings={settings} setSettings={setSettings} />,
+                'admin-users': <AdminUserManagement onNavigate={setView} users={users} setUsers={setUsers} settings={settings} setSettings={setSettings} />,
+                'admin-comms': <AdminComms onNavigate={setView} users={users} />,
+                'admin-analytics': <AdminAnalytics onNavigate={setView} users={users} />,
+                'team-chat': <TeamChatHub onNavigate={setView} />,
+                'volunteer-dashboard': <VolunteerDashboard onNavigate={setView} />,
+                'about': <AboutPage onNavigate={setView} />,
+                'contact': <ContactPage onNavigate={setView} />,
+                'gallery': <GalleryPage onNavigate={setView} />,
+                'donate': <DonatePage onNavigate={setView} />,
+            };
+
+            return views[view] || views.landing;
+        }
+
+        function AdminDashboard({ onNavigate, users, setUsers, settings, setSettings }) {
+            const volunteers = users.filter(u => u.role === 'Volunteer');
+            const residents = users.filter(u => u.role === 'Resident');
+            const pendingUsers = users.filter(u => u.status === 'pending');
+            const pendingBGChecks = volunteers.filter(v => v.backgroundCheck === 'not_started' || v.backgroundCheck === 'pending');
+
+            return (
+                <div className="min-h-screen bg-white">
+                    <Navigation onNavigate={onNavigate} currentPage="admin-dashboard" />
+
+                    <section className="max-w-7xl mx-auto px-4 py-16">
+                        <div className="mb-8">
+                            <h1 className="text-4xl font-bold mb-2">🔐 Admin Dashboard</h1>
+                            <p className="text-gray-600">Complete platform management and oversight</p>
+                        </div>
+
+                        {/* Quick Stats */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                            <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl p-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <i className="fas fa-users text-3xl opacity-80"></i>
+                                    <span className="text-2xl font-bold">{users.length}</span>
+                                </div>
+                                <h3 className="text-lg font-semibold">Total Users</h3>
+                                <p className="text-sm opacity-90">{volunteers.length} volunteers • {residents.length} residents</p>
+                            </div>
+
+                            <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-2xl p-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <i className="fas fa-clock text-3xl opacity-80"></i>
+                                    <span className="text-2xl font-bold">{pendingUsers.length}</span>
+                                </div>
+                                <h3 className="text-lg font-semibold">Pending Approval</h3>
+                                <p className="text-sm opacity-90">Users awaiting review</p>
+                            </div>
+
+                            <div className="bg-gradient-to-br from-red-500 to-red-600 text-white rounded-2xl p-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <i className="fas fa-shield-alt text-3xl opacity-80"></i>
+                                    <span className="text-2xl font-bold">{pendingBGChecks.length}</span>
+                                </div>
+                                <h3 className="text-lg font-semibold">Background Checks</h3>
+                                <p className="text-sm opacity-90">Pending or not started</p>
+                            </div>
+
+                            <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl p-6">
+                                <div className="flex items-center justify-between mb-2">
+                                    <i className="fas fa-check-circle text-3xl opacity-80"></i>
+                                    <span className="text-2xl font-bold">{users.filter(u => u.status === 'active').length}</span>
+                                </div>
+                                <h3 className="text-lg font-semibold">Active Users</h3>
+                                <p className="text-sm opacity-90">Fully approved</p>
+                            </div>
+                        </div>
+
+                        {/* Admin Tools Grid */}
+                        <div className="mb-8">
+                            <h2 className="text-2xl font-bold mb-6">Admin Tools</h2>
+                            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <button onClick={() => onNavigate('admin-users')} className="bg-white border-2 border-purple-200 hover:border-purple-500 hover:shadow-lg rounded-2xl p-6 text-left transition group">
+                                    <div className="w-14 h-14 bg-purple-100 group-hover:bg-purple-500 rounded-xl flex items-center justify-center mb-4 transition">
+                                        <i className="fas fa-users text-2xl text-purple-600 group-hover:text-white transition"></i>
+                                    </div>
+                                    <h3 className="font-bold text-lg mb-2">User Management</h3>
+                                    <p className="text-gray-600 text-sm mb-3">Add, approve, edit users and initiate background checks</p>
+                                    <div className="flex items-center text-purple-600 font-semibold text-sm">
+                                        Manage Users <i className="fas fa-arrow-right ml-2"></i>
+                                    </div>
+                                </button>
+
+                                <button onClick={() => onNavigate('admin-comms')} className="bg-white border-2 border-blue-200 hover:border-blue-500 hover:shadow-lg rounded-2xl p-6 text-left transition group">
+                                    <div className="w-14 h-14 bg-blue-100 group-hover:bg-blue-500 rounded-xl flex items-center justify-center mb-4 transition">
+                                        <i className="fas fa-comment-dots text-2xl text-blue-600 group-hover:text-white transition"></i>
+                                    </div>
+                                    <h3 className="font-bold text-lg mb-2">Communications</h3>
+                                    <p className="text-gray-600 text-sm mb-3">Send broadcast messages to users and groups</p>
+                                    <div className="flex items-center text-blue-600 font-semibold text-sm">
+                                        Send Messages <i className="fas fa-arrow-right ml-2"></i>
+                                    </div>
+                                </button>
+
+                                <button onClick={() => onNavigate('admin-analytics')} className="bg-white border-2 border-green-200 hover:border-green-500 hover:shadow-lg rounded-2xl p-6 text-left transition group">
+                                    <div className="w-14 h-14 bg-green-100 group-hover:bg-green-500 rounded-xl flex items-center justify-center mb-4 transition">
+                                        <i className="fas fa-chart-bar text-2xl text-green-600 group-hover:text-white transition"></i>
+                                    </div>
+                                    <h3 className="font-bold text-lg mb-2">Analytics</h3>
+                                    <p className="text-gray-600 text-sm mb-3">View platform metrics, reports and insights</p>
+                                    <div className="flex items-center text-green-600 font-semibold text-sm">
+                                        View Reports <i className="fas fa-arrow-right ml-2"></i>
+                                    </div>
+                                </button>
+
+                                <button onClick={() => onNavigate('team-chat')} className="bg-white border-2 border-indigo-200 hover:border-indigo-500 hover:shadow-lg rounded-2xl p-6 text-left transition group">
+                                    <div className="w-14 h-14 bg-indigo-100 group-hover:bg-indigo-500 rounded-xl flex items-center justify-center mb-4 transition">
+                                        <i className="fas fa-comments text-2xl text-indigo-600 group-hover:text-white transition"></i>
+                                    </div>
+                                    <h3 className="font-bold text-lg mb-2">Team Chat</h3>
+                                    <p className="text-gray-600 text-sm mb-3">Internal team communication and collaboration</p>
+                                    <div className="flex items-center text-indigo-600 font-semibold text-sm">
+                                        Open Chat <i className="fas fa-arrow-right ml-2"></i>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Quick Actions */}
+                        <div className="bg-gray-50 rounded-2xl p-6">
+                            <h2 className="text-2xl font-bold mb-6">Quick Actions</h2>
+                            <div className="grid md:grid-cols-3 gap-4">
+                                <button onClick={() => onNavigate('volunteer-dashboard')} className="bg-white hover:bg-gray-50 border border-gray-200 rounded-xl p-4 text-left">
+                                    <i className="fas fa-clipboard-list text-xl text-blue-600 mb-2"></i>
+                                    <div className="font-semibold">View Volunteer Dashboard</div>
+                                    <p className="text-sm text-gray-600">Test volunteer experience</p>
+                                </button>
+                                <button onClick={() => onNavigate('resident-dashboard')} className="bg-white hover:bg-gray-50 border border-gray-200 rounded-xl p-4 text-left">
+                                    <i className="fas fa-home text-xl text-green-600 mb-2"></i>
+                                    <div className="font-semibold">View Resident Dashboard</div>
+                                    <p className="text-sm text-gray-600">Test resident experience</p>
+                                </button>
+                                <button onClick={() => onNavigate('gallery')} className="bg-white hover:bg-gray-50 border border-gray-200 rounded-xl p-4 text-left">
+                                    <i className="fas fa-images text-xl text-purple-600 mb-2"></i>
+                                    <div className="font-semibold">Manage Gallery</div>
+                                    <p className="text-sm text-gray-600">Review uploaded photos</p>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Recent Activity */}
+                        {pendingUsers.length > 0 && (
+                            <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-2xl p-6">
+                                <div className="flex items-center mb-4">
+                                    <i className="fas fa-exclamation-triangle text-yellow-600 text-2xl mr-3"></i>
+                                    <div>
+                                        <h3 className="font-bold text-lg">Action Required</h3>
+                                        <p className="text-gray-600">You have {pendingUsers.length} user(s) pending approval</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => onNavigate('admin-users')} className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-lg font-semibold">
+                                    Review Pending Users
+                                </button>
+                            </div>
+                        )}
+                    </section>
+                </div>
+            );
+        }
+
+        function LandingPage({ onNavigate }) {
+            return (
+                <div className="min-h-screen bg-white">
+                    <Navigation onNavigate={onNavigate} currentPage="landing" />
+
+                    <section className="max-w-7xl mx-auto px-4 py-16">
+                        <div className="text-center mb-20">
+                            <div className="text-8xl mb-8">🤝</div>
+                            <h1 className="text-5xl md:text-6xl font-bold mb-6">Neighbors Helping Neighbors.</h1>
+                            <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
+                                Connecting local volunteers with residents who need a hand with everyday tasks.
+                            </p>
+                            
+                            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+                                <button onClick={() => onNavigate('resident-request')} className="bg-green-500 hover:bg-green-600 text-white px-10 py-5 rounded-full text-xl font-semibold shadow-lg hover:shadow-xl transition transform hover:-translate-y-1">
+                                    I Need Help
+                                </button>
+                                <button onClick={() => onNavigate('volunteer-signup')} className="bg-orange-500 hover:bg-orange-600 text-white px-10 py-5 rounded-full text-xl font-semibold shadow-lg hover:shadow-xl transition transform hover:-translate-y-1">
+                                    I Want to Volunteer
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-3xl p-12 mb-20 text-center">
+                            <div className="text-5xl mb-6">🧡</div>
+                            <h2 className="text-3xl md:text-4xl font-bold mb-6">Our Mission</h2>
+                            <p className="text-lg md:text-xl text-gray-700 max-w-4xl mx-auto leading-relaxed">
+                                At HandyMatches, we believe in the power of community. Our mission is to foster 
+                                stronger, more connected neighborhoods by providing a simple and safe platform 
+                                where residents can find volunteer assistance for everyday tasks, ensuring everyone 
+                                has the support they need to thrive.
+                            </p>
+                        </div>
+
+                        <div className="mb-20">
+                            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">What We Do</h2>
+                            <div className="max-w-4xl mx-auto">
+                                <p className="text-lg text-gray-700 leading-relaxed mb-6">
+                                    HandyMatches is a non-profit platform that brings neighbors together. We connect 
+                                    skilled volunteers with community members who need assistance with everyday tasks 
+                                    like home repairs, gardening, pet care, and more.
+                                </p>
+                                <p className="text-lg text-gray-700 leading-relaxed mb-6">
+                                    Every day, our volunteers help elderly neighbors fix leaky faucets, assist families 
+                                    with yard work, walk dogs for busy professionals, and provide countless other services 
+                                    that make our communities stronger and more caring.
+                                </p>
+                                <p className="text-lg text-gray-700 leading-relaxed">
+                                    Whether you're looking for help or want to give back to your community, HandyMatches 
+                                    makes it easy, safe, and rewarding to connect with your neighbors.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="mb-20">
+                            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Our Values</h2>
+                            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                                <div className="bg-white p-8 rounded-2xl shadow-lg text-center">
+                                    <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <span className="text-4xl">👥</span>
+                                    </div>
+                                    <h3 className="font-bold text-2xl mb-3">Community</h3>
+                                    <p className="text-gray-600">Building stronger neighborhoods through mutual support</p>
+                                </div>
+                                <div className="bg-white p-8 rounded-2xl shadow-lg text-center">
+                                    <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <span className="text-4xl">🛡️</span>
+                                    </div>
+                                    <h3 className="font-bold text-2xl mb-3">Trust</h3>
+                                    <p className="text-gray-600">Verified volunteers and safe, reliable assistance</p>
+                                </div>
+                                <div className="bg-white p-8 rounded-2xl shadow-lg text-center">
+                                    <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <span className="text-4xl">💙</span>
+                                    </div>
+                                    <h3 className="font-bold text-2xl mb-3">Empathy</h3>
+                                    <p className="text-gray-600">Compassionate care for every community member</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mb-20 bg-gray-50 rounded-3xl p-12">
+                            <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">How It Works</h2>
+                            <p className="text-center text-gray-600 mb-12 text-lg">Getting help or volunteering is simple</p>
+                            
+                            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                                <div className="text-center">
+                                    <div className="w-20 h-20 bg-blue-500 text-white rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-4">1</div>
+                                    <h3 className="font-bold text-xl mb-3">Post a Task</h3>
+                                    <p className="text-gray-600">Tell us what you need help with</p>
+                                </div>
+                                <div className="text-center">
+                                    <div className="w-20 h-20 bg-blue-500 text-white rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-4">2</div>
+                                    <h3 className="font-bold text-xl mb-3">Get Matched</h3>
+                                    <p className="text-gray-600">We connect you with qualified volunteers</p>
+                                </div>
+                                <div className="text-center">
+                                    <div className="w-20 h-20 bg-blue-500 text-white rounded-full flex items-center justify-center text-3xl font-bold mx-auto mb-4">3</div>
+                                    <h3 className="font-bold text-xl mb-3">Get Help</h3>
+                                    <p className="text-gray-600">Your neighbor lends a hand</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-3xl p-12 text-center">
+                            <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Make a Difference?</h2>
+                            <p className="text-xl mb-8 opacity-90">Join our community of neighbors helping neighbors today</p>
+                            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                                <button onClick={() => onNavigate('volunteer-signup')} className="bg-white text-blue-600 px-8 py-4 rounded-full text-lg font-semibold hover:bg-gray-100 transition">
+                                    Become a Volunteer
+                                </button>
+                                <button onClick={() => onNavigate('resident-request')} className="bg-white text-blue-600 px-8 py-4 rounded-full text-lg font-semibold hover:bg-gray-100 transition">
+                                    Request Help
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <footer className="bg-gray-100 py-8 mt-16">
+                        <div className="max-w-7xl mx-auto px-4 text-center">
+                            <div className="text-2xl font-bold text-orange-500 mb-4">HandyMatches</div>
+                            <div className="flex justify-center space-x-6 mb-4">
+                                <a onClick={() => onNavigate('about')} className="cursor-pointer hover:text-orange-500">About Us</a>
+                                <a onClick={() => onNavigate('contact')} className="cursor-pointer hover:text-orange-500">Contact</a>
+                                <a onClick={() => onNavigate('donate')} className="cursor-pointer hover:text-orange-500">Donate</a>
+                                <a onClick={() => onNavigate('gallery')} className="cursor-pointer hover:text-orange-500">Gallery</a>
+                            </div>
+                            <div className="flex justify-center space-x-4">
+                                <i className="fab fa-facebook text-2xl cursor-pointer hover:text-blue-600"></i>
+                                <i className="fab fa-twitter text-2xl cursor-pointer hover:text-blue-400"></i>
+                                <i className="fab fa-instagram text-2xl cursor-pointer hover:text-pink-600"></i>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            );
+        }
+
+        function VolunteerSignup({ onNavigate, users, setUsers }) {
+            const [step, setStep] = useState(1);
+            const [formData, setFormData] = useState({
+                fullName: '', email: '', phone: '', zipCode: '', skills: [], availability: ''
+            });
+
+            const handleComplete = () => {
+                const newUser = {
+                    id: users.length + 1,
+                    name: formData.fullName,
+                    email: formData.email,
+                    role: 'Volunteer',
+                    status: 'pending',
+                    skills: formData.skills,
+                    backgroundCheck: 'not_started',
+                    joinDate: new Date().toISOString().split('T')[0],
+                    tasksCompleted: 0,
+                    avatar: '👤'
+                };
+                setUsers([...users, newUser]);
+                alert('Application submitted! An administrator will review your application.');
+                onNavigate('landing');
+            };
+
+            const skills = [
+                { category: 'Home Repairs', items: ['Plumbing', 'Electrical Work', 'Painting', 'Carpentry'] },
+                { category: 'Pet Care', items: ['Dog Walking', 'Pet Sitting'] },
+                { category: 'Outdoor', items: ['Gardening', 'Lawn Mowing'] }
+            ];
+
+            const toggleSkill = (skill) => {
+                setFormData(prev => ({
+                    ...prev,
+                    skills: prev.skills.includes(skill) 
+                        ? prev.skills.filter(s => s !== skill)
+                        : [...prev.skills, skill]
+                }));
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-xl max-w-md w-full p-8">
+                        <div className="flex items-center mb-6">
+                            <button onClick={() => step > 1 ? setStep(step - 1) : onNavigate('landing')}>
+                                <i className="fas fa-arrow-left text-xl"></i>
+                            </button>
+                            <div className="ml-4">Step {step} of 3</div>
+                        </div>
+
+                        <div className="h-1 bg-gray-200 rounded mb-8">
+                            <div className="h-full bg-blue-600 rounded transition-all" style={{width: `${(step/3)*100}%`}}></div>
+                        </div>
+
+                        {step === 1 && (
+                            <div>
+                                <h2 className="text-2xl font-bold mb-6">Let's Get Started</h2>
+                                <div className="space-y-4">
+                                    <input type="text" placeholder="Full Name" className="w-full px-4 py-3 border rounded-lg" 
+                                        value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} />
+                                    <input type="email" placeholder="Email" className="w-full px-4 py-3 border rounded-lg" 
+                                        value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+                                    <input type="tel" placeholder="Phone" className="w-full px-4 py-3 border rounded-lg" 
+                                        value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+                                    <input type="text" placeholder="ZIP Code" className="w-full px-4 py-3 border rounded-lg" 
+                                        value={formData.zipCode} onChange={(e) => setFormData({...formData, zipCode: e.target.value})} />
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 2 && (
+                            <div>
+                                <h2 className="text-2xl font-bold mb-6">What are your skills?</h2>
+                                <div className="space-y-6">
+                                    {skills.map((category, idx) => (
+                                        <div key={idx}>
+                                            <h3 className="font-semibold mb-3">{category.category}</h3>
+                                            <div className="space-y-2">
+                                                {category.items.map((skill, i) => (
+                                                    <label key={i} className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            className="mr-3"
+                                                            checked={formData.skills.includes(skill)}
+                                                            onChange={() => toggleSkill(skill)}
+                                                        />
+                                                        <span>{skill}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 3 && (
+                            <div>
+                                <h2 className="text-2xl font-bold mb-6">When are you available?</h2>
+                                <div className="space-y-3">
+                                    {['Weekday Mornings', 'Weekday Afternoons', 'Weekday Evenings', 'Weekend Mornings', 'Weekend Afternoons', 'Flexible'].map((option, i) => (
+                                        <label key={i} className="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                                            <input 
+                                                type="radio" 
+                                                name="availability" 
+                                                className="mr-3"
+                                                checked={formData.availability === option}
+                                                onChange={() => setFormData({...formData, availability: option})}
+                                            />
+                                            <span>{option}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <button 
+                            onClick={() => step < 3 ? setStep(step + 1) : handleComplete()} 
+                            className="w-full btn-primary text-white py-4 rounded-full text-lg font-semibold mt-8"
+                        >
+                            {step === 3 ? 'Complete Registration' : 'Continue'}
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        function AdminUserManagement({ onNavigate, users, setUsers, settings, setSettings }) {
+            const [searchTerm, setSearchTerm] = useState('');
+            const [filterTab, setFilterTab] = useState('all');
+            const [selectedUser, setSelectedUser] = useState(null);
+            const [showAddUser, setShowAddUser] = useState(false);
+            const [showSettings, setShowSettings] = useState(false);
+
+            const filteredUsers = users.filter(user => {
+                const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                     user.email.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesFilter = filterTab === 'all' || 
+                                     (filterTab === 'pending' && user.status === 'pending') ||
+                                     (filterTab === 'volunteers' && user.role === 'Volunteer') ||
+                                     (filterTab === 'residents' && user.role === 'Resident');
+                return matchesSearch && matchesFilter;
+            });
+
+            const approveUser = (userId) => {
+                setUsers(users.map(u => u.id === userId ? {...u, status: 'active'} : u));
+                setSelectedUser(null);
+                alert('User approved successfully!');
+            };
+
+            const initiateBackgroundCheck = (userId) => {
+                setUsers(users.map(u => u.id === userId ? {...u, backgroundCheck: 'pending'} : u));
+                alert('Background check initiated. You will be notified when complete.');
+            };
+
+            const completeBackgroundCheck = (userId, passed) => {
+                setUsers(users.map(u => u.id === userId ? {...u, backgroundCheck: passed ? 'completed' : 'failed'} : u));
+                alert(`Background check marked as ${passed ? 'passed' : 'failed'}.`);
+            };
+
+            const deactivateUser = (userId) => {
+                if (confirm('Are you sure you want to deactivate this user?')) {
+                    setUsers(users.map(u => u.id === userId ? {...u, status: 'inactive'} : u));
+                    setSelectedUser(null);
+                }
+            };
+
+            const deleteUser = (userId) => {
+                if (confirm('Are you sure you want to permanently delete this user?')) {
+                    setUsers(users.filter(u => u.id !== userId));
+                    setSelectedUser(null);
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-900">
+                    <div className="max-w-6xl mx-auto bg-gray-900 min-h-screen">
+                        <div className="bg-gray-800 p-4 flex items-center sticky top-0 z-50">
+                            <button onClick={() => onNavigate('landing')} className="text-white mr-4">
+                                <i className="fas fa-arrow-left text-xl"></i>
+                            </button>
+                            <h1 className="text-xl font-bold text-white flex-1">User Management</h1>
+                            <button onClick={() => setShowSettings(true)} className="text-white mr-4">
+                                <i className="fas fa-cog text-xl"></i>
+                            </button>
+                            <button onClick={() => setShowAddUser(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                                <i className="fas fa-user-plus mr-2"></i>Add User
+                            </button>
+                        </div>
+
+                        <div className="p-4">
+                            <div className="relative mb-4">
+                                <input 
+                                    type="text" 
+                                    placeholder="Search by name or email..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full bg-gray-800 text-white px-4 py-3 pl-10 rounded-lg border border-gray-700"
+                                />
+                                <i className="fas fa-search absolute left-3 top-4 text-gray-500"></i>
+                            </div>
+
+                            <div className="flex gap-2 mb-4 overflow-x-auto">
+                                {[['all', 'All Users'], ['pending', 'Pending Approval'], ['volunteers', 'Volunteers'], ['residents', 'Residents']].map(([key, label]) => (
+                                    <button 
+                                        key={key}
+                                        onClick={() => setFilterTab(key)} 
+                                        className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap ${filterTab === key ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400'}`}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="bg-gray-800 rounded-lg p-2 mb-4 text-white text-sm">
+                                <i className="fas fa-info-circle text-blue-400 mr-2"></i>
+                                {filteredUsers.filter(u => u.status === 'pending').length} users pending approval • 
+                                {filteredUsers.filter(u => u.backgroundCheck === 'not_started').length} background checks needed
+                            </div>
+
+                            <div className="space-y-2">
+                                {filteredUsers.map((user) => (
+                                    <div key={user.id} className="bg-gray-800 rounded-lg p-4 flex items-center hover:bg-gray-750 cursor-pointer" onClick={() => setSelectedUser(user)}>
+                                        <div className="text-3xl mr-4">{user.avatar}</div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h3 className="text-white font-semibold">{user.name}</h3>
+                                                <span className={`status-${user.status}`}>{user.status}</span>
+                                                {user.role === 'Volunteer' && (
+                                                    <span className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
+                                                        BG: {user.backgroundCheck}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-gray-400 text-sm">{user.email} • {user.role}</p>
+                                            {user.skills && user.skills.length > 0 && (
+                                                <div className="flex gap-1 mt-1">
+                                                    {user.skills.slice(0, 3).map((skill, i) => (
+                                                        <span key={i} className="text-xs bg-blue-900 text-blue-200 px-2 py-1 rounded">{skill}</span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <button className="text-gray-400 hover:text-white">
+                                            <i className="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* User Detail Modal */}
+                        {selectedUser && (
+                            <div className="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50" onClick={() => setSelectedUser(null)}>
+                                <div className="bg-gray-800 rounded-2xl max-w-2xl w-full p-6 text-white" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="flex items-center">
+                                            <div className="text-5xl mr-4">{selectedUser.avatar}</div>
+                                            <div>
+                                                <h2 className="text-2xl font-bold">{selectedUser.name}</h2>
+                                                <p className="text-gray-400">{selectedUser.email}</p>
+                                            </div>
+                                        </div>
+                                        <button onClick={() => setSelectedUser(null)} className="text-gray-400 hover:text-white">
+                                            <i className="fas fa-times text-2xl"></i>
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4 mb-6">
+                                        <div className="bg-gray-700 rounded-lg p-4">
+                                            <div className="text-gray-400 text-sm mb-1">Role</div>
+                                            <div className="font-semibold">{selectedUser.role}</div>
+                                        </div>
+                                        <div className="bg-gray-700 rounded-lg p-4">
+                                            <div className="text-gray-400 text-sm mb-1">Status</div>
+                                            <span className={`status-${selectedUser.status}`}>{selectedUser.status}</span>
+                                        </div>
+                                        <div className="bg-gray-700 rounded-lg p-4">
+                                            <div className="text-gray-400 text-sm mb-1">Join Date</div>
+                                            <div className="font-semibold">{selectedUser.joinDate}</div>
+                                        </div>
+                                        {selectedUser.role === 'Volunteer' && (
+                                            <>
+                                                <div className="bg-gray-700 rounded-lg p-4">
+                                                    <div className="text-gray-400 text-sm mb-1">Background Check</div>
+                                                    <div className="font-semibold">{selectedUser.backgroundCheck}</div>
+                                                </div>
+                                                <div className="bg-gray-700 rounded-lg p-4 col-span-2">
+                                                    <div className="text-gray-400 text-sm mb-2">Skills</div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {selectedUser.skills && selectedUser.skills.map((skill, i) => (
+                                                            <span key={i} className="bg-blue-900 text-blue-200 px-3 py-1 rounded-full text-sm">{skill}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {selectedUser.status === 'pending' && (
+                                            <button onClick={() => approveUser(selectedUser.id)} className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold">
+                                                <i className="fas fa-check mr-2"></i>Approve User
+                                            </button>
+                                        )}
+
+                                        {selectedUser.role === 'Volunteer' && selectedUser.backgroundCheck === 'not_started' && (
+                                            <button onClick={() => initiateBackgroundCheck(selectedUser.id)} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold">
+                                                <i className="fas fa-search mr-2"></i>Initiate Background Check
+                                            </button>
+                                        )}
+
+                                        {selectedUser.role === 'Volunteer' && selectedUser.backgroundCheck === 'pending' && (
+                                            <div className="flex gap-2">
+                                                <button onClick={() => completeBackgroundCheck(selectedUser.id, true)} className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold">
+                                                    <i className="fas fa-check mr-2"></i>Passed
+                                                </button>
+                                                <button onClick={() => completeBackgroundCheck(selectedUser.id, false)} className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold">
+                                                    <i className="fas fa-times mr-2"></i>Failed
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        <button onClick={() => deactivateUser(selectedUser.id)} className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-lg font-semibold">
+                                            <i className="fas fa-ban mr-2"></i>Deactivate User
+                                        </button>
+
+                                        <button onClick={() => deleteUser(selectedUser.id)} className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold">
+                                            <i className="fas fa-trash mr-2"></i>Delete User Permanently
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Settings Modal */}
+                        {showSettings && (
+                            <div className="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50" onClick={() => setShowSettings(false)}>
+                                <div className="bg-gray-800 rounded-2xl max-w-md w-full p-6 text-white" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h2 className="text-2xl font-bold">Settings</h2>
+                                        <button onClick={() => setShowSettings(false)}>
+                                            <i className="fas fa-times text-xl"></i>
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <div className="bg-gray-700 rounded-lg p-4">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <div>
+                                                    <h3 className="font-semibold">Auto-Approve Gallery Photos</h3>
+                                                    <p className="text-sm text-gray-400">Photos are automatically approved for gallery</p>
+                                                </div>
+                                                <label className="relative inline-block w-12 h-6">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={settings.autoApprovePhotos}
+                                                        onChange={(e) => setSettings({...settings, autoApprovePhotos: e.target.checked})}
+                                                        className="sr-only peer"
+                                                    />
+                                                    <span className="absolute inset-0 bg-gray-600 rounded-full peer-checked:bg-green-600 transition"></span>
+                                                    <span className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition peer-checked:translate-x-6"></span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-gray-700 rounded-lg p-4">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <div>
+                                                    <h3 className="font-semibold">Require Background Checks</h3>
+                                                    <p className="text-sm text-gray-400">All volunteers must complete background check</p>
+                                                </div>
+                                                <label className="relative inline-block w-12 h-6">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        checked={settings.requireBackgroundCheck}
+                                                        onChange={(e) => setSettings({...settings, requireBackgroundCheck: e.target.checked})}
+                                                        className="sr-only peer"
+                                                    />
+                                                    <span className="absolute inset-0 bg-gray-600 rounded-full peer-checked:bg-green-600 transition"></span>
+                                                    <span className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition peer-checked:translate-x-6"></span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <button onClick={() => setShowSettings(false)} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold mt-6">
+                                        Save Settings
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Add User Modal */}
+                        {showAddUser && (
+                            <div className="fixed inset-0 modal-overlay flex items-center justify-center p-4 z-50" onClick={() => setShowAddUser(false)}>
+                                <div className="bg-gray-800 rounded-2xl max-w-md w-full p-6 text-white" onClick={(e) => e.stopPropagation()}>
+                                    <h2 className="text-2xl font-bold mb-6">Add New User</h2>
+                                    <div className="space-y-4">
+                                        <input type="text" placeholder="Full Name" className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg" />
+                                        <input type="email" placeholder="Email" className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg" />
+                                        <select className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg">
+                                            <option>Select Role</option>
+                                            <option>Volunteer</option>
+                                            <option>Resident</option>
+                                            <option>Admin</option>
+                                        </select>
+                                        <button className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold">
+                                            Add User
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function AdminComms({ onNavigate, users }) {
+            const [tab, setTab] = useState('compose');
+            const [recipients, setRecipients] = useState('all');
+            const [message, setMessage] = useState('');
+            const [history, setHistory] = useState([
+                { id: 1, subject: 'Weekly Update - Dec 1', recipients: 'All Users', date: '2024-12-01', delivered: true },
+                { id: 2, subject: 'Welcome New Volunteers', recipients: 'Volunteers', date: '2024-11-28', delivered: true }
+            ]);
+
+            const sendMessage = () => {
+                if (!message) {
+                    alert('Please compose a message');
+                    return;
+                }
+                const newMsg = {
+                    id: history.length + 1,
+                    subject: message.split('\n')[0].substring(0, 50),
+                    recipients: recipients === 'all' ? 'All Users' : recipients,
+                    date: new Date().toISOString().split('T')[0],
+                    delivered: true
+                };
+                setHistory([newMsg, ...history]);
+                setMessage('');
+                alert(`Message sent to ${recipients === 'all' ? 'all users' : recipients}!`);
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-900">
+                    <div className="max-w-4xl mx-auto bg-gray-900 min-h-screen">
+                        <div className="bg-gray-800 p-4 flex items-center">
+                            <button onClick={() => onNavigate('landing')} className="text-white mr-4">
+                                <i className="fas fa-arrow-left text-xl"></i>
+                            </button>
+                            <h1 className="text-xl font-bold text-white flex-1">Communication Hub</h1>
+                        </div>
+
+                        <div className="flex border-b border-gray-700">
+                            {['compose', 'history'].map((t) => (
+                                <button key={t} onClick={() => setTab(t)} className={`flex-1 py-3 text-sm font-medium ${tab === t ? 'text-white bg-blue-600' : 'text-gray-400 bg-gray-800'}`}>
+                                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="p-4">
+                            {tab === 'compose' && (
+                                <div>
+                                    <div className="bg-gray-800 rounded-lg p-4 mb-4">
+                                        <label className="block text-white text-sm font-semibold mb-2">Recipients</label>
+                                        <select value={recipients} onChange={(e) => setRecipients(e.target.value)} className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600">
+                                            <option value="all">All Users ({users.length})</option>
+                                            <option value="volunteers">All Volunteers ({users.filter(u => u.role === 'Volunteer').length})</option>
+                                            <option value="residents">All Residents ({users.filter(u => u.role === 'Resident').length})</option>
+                                            <option value="pending">Pending Users ({users.filter(u => u.status === 'pending').length})</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div className="bg-gray-800 rounded-lg p-4 mb-4">
+                                        <label className="block text-white text-sm font-semibold mb-2">Message</label>
+                                        <textarea 
+                                            placeholder="Compose your message..."
+                                            value={message}
+                                            onChange={(e) => setMessage(e.target.value)}
+                                            rows="10"
+                                            className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 outline-none"
+                                        ></textarea>
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-medium">
+                                            <i className="fas fa-clock mr-2"></i>Schedule
+                                        </button>
+                                        <button onClick={sendMessage} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium">
+                                            <i className="fas fa-paper-plane mr-2"></i>Send Now
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {tab === 'history' && (
+                                <div className="space-y-3">
+                                    {history.map((msg) => (
+                                        <div key={msg.id} className="bg-gray-800 rounded-lg p-4">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <h3 className="text-white font-semibold">{msg.subject}</h3>
+                                                <span className="text-xs text-gray-400">{msg.date}</span>
+                                            </div>
+                                            <p className="text-gray-400 text-sm mb-2">Sent to: {msg.recipients}</p>
+                                            <div className="flex items-center text-xs text-green-400">
+                                                <i className="fas fa-check-double mr-2"></i>
+                                                <span>Delivered successfully</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function AdminAnalytics({ onNavigate, users }) {
+            const volunteers = users.filter(u => u.role === 'Volunteer');
+            const residents = users.filter(u => u.role === 'Resident');
+            const activeUsers = users.filter(u => u.status === 'active');
+            const pendingUsers = users.filter(u => u.status === 'pending');
+
+            return (
+                <div className="min-h-screen bg-gray-900">
+                    <div className="max-w-6xl mx-auto bg-gray-900 min-h-screen">
+                        <div className="bg-gray-800 p-4 flex items-center">
+                            <button onClick={() => onNavigate('landing')} className="text-white mr-4">
+                                <i className="fas fa-arrow-left text-xl"></i>
+                            </button>
+                            <h1 className="text-xl font-bold text-white flex-1">Reporting & Analytics</h1>
+                        </div>
+
+                        <div className="p-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                                <div className="bg-gray-800 rounded-lg p-4">
+                                    <div className="text-gray-400 text-sm mb-1">Total Users</div>
+                                    <div className="text-white text-3xl font-bold">{users.length}</div>
+                                    <div className="text-green-500 text-xs mt-1">Active Platform</div>
+                                </div>
+                                <div className="bg-gray-800 rounded-lg p-4">
+                                    <div className="text-gray-400 text-sm mb-1">Volunteers</div>
+                                    <div className="text-white text-3xl font-bold">{volunteers.length}</div>
+                                    <div className="text-blue-500 text-xs mt-1">{volunteers.filter(v => v.status === 'active').length} Active</div>
+                                </div>
+                                <div className="bg-gray-800 rounded-lg p-4">
+                                    <div className="text-gray-400 text-sm mb-1">Residents</div>
+                                    <div className="text-white text-3xl font-bold">{residents.length}</div>
+                                    <div className="text-purple-500 text-xs mt-1">{residents.filter(r => r.status === 'active').length} Active</div>
+                                </div>
+                                <div className="bg-gray-800 rounded-lg p-4">
+                                    <div className="text-gray-400 text-sm mb-1">Pending Approval</div>
+                                    <div className="text-white text-3xl font-bold">{pendingUsers.length}</div>
+                                    <div className="text-yellow-500 text-xs mt-1">Needs Review</div>
+                                </div>
+                            </div>
+
+                            <div className="bg-gray-800 rounded-lg p-6 mb-6">
+                                <h3 className="text-white font-semibold text-lg mb-4">Background Check Status</h3>
+                                <div className="space-y-3">
+                                    {[
+                                        ['Completed', volunteers.filter(v => v.backgroundCheck === 'completed').length, 'green'],
+                                        ['Pending', volunteers.filter(v => v.backgroundCheck === 'pending').length, 'yellow'],
+                                        ['Not Started', volunteers.filter(v => v.backgroundCheck === 'not_started').length, 'red']
+                                    ].map(([label, count, color]) => (
+                                        <div key={label}>
+                                            <div className="flex justify-between text-sm mb-1">
+                                                <span className="text-gray-300">{label}</span>
+                                                <span className="text-white font-semibold">{count}</span>
+                                            </div>
+                                            <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                                                <div className={`h-full bg-${color}-500`} style={{width: `${(count/volunteers.length)*100}%`}}></div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="bg-gray-800 rounded-lg p-6">
+                                <h3 className="text-white font-semibold text-lg mb-4">User Activity</h3>
+                                <div className="space-y-4">
+                                    {users.slice(0, 5).map((user) => (
+                                        <div key={user.id} className="flex items-center justify-between">
+                                            <div className="flex items-center">
+                                                <div className="text-2xl mr-3">{user.avatar}</div>
+                                                <div>
+                                                    <div className="text-white font-semibold text-sm">{user.name}</div>
+                                                    <div className="text-gray-400 text-xs">{user.role} • {user.status}</div>
+                                                </div>
+                                            </div>
+                                            <span className={`status-${user.status}`}>{user.status}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function TeamChatHub({ onNavigate }) {
+            const [messages, setMessages] = useState([
+                { id: 1, user: 'Admin Sarah', avatar: '👩', message: 'New volunteer application from John Pending', time: '10:30 AM', type: 'system' },
+                { id: 2, user: 'Coordinator Mike', avatar: '👨', message: 'I can review it this afternoon', time: '10:32 AM', type: 'user' },
+                { id: 3, user: 'Admin Sarah', avatar: '👩', message: 'Great! Background check will be needed', time: '10:35 AM', type: 'user' }
+            ]);
+            const [newMessage, setNewMessage] = useState('');
+
+            const sendMessage = () => {
+                if (!newMessage.trim()) return;
+                const msg = {
+                    id: messages.length + 1,
+                    user: 'You',
+                    avatar: '👤',
+                    message: newMessage,
+                    time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+                    type: 'user'
+                };
+                setMessages([...messages, msg]);
+                setNewMessage('');
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-900">
+                    <div className="max-w-4xl mx-auto bg-gray-900 h-screen flex flex-col">
+                        <div className="bg-gray-800 p-4 flex items-center">
+                            <button onClick={() => onNavigate('landing')} className="text-white mr-4">
+                                <i className="fas fa-arrow-left text-xl"></i>
+                            </button>
+                            <div className="flex-1">
+                                <h1 className="text-xl font-bold text-white">Team Communication Hub</h1>
+                                <p className="text-sm text-gray-400">Internal team collaboration</p>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-green-500 text-sm">3 online</span>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            {messages.map((msg) => (
+                                <div key={msg.id} className={`flex items-start ${msg.type === 'system' ? 'justify-center' : ''}`}>
+                                    {msg.type === 'system' ? (
+                                        <div className="bg-gray-800 text-gray-300 px-4 py-2 rounded-lg text-sm">
+                                            <i className="fas fa-info-circle mr-2 text-blue-400"></i>
+                                            {msg.message}
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="text-3xl mr-3">{msg.avatar}</div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-white font-semibold text-sm">{msg.user}</span>
+                                                    <span className="text-gray-500 text-xs">{msg.time}</span>
+                                                </div>
+                                                <div className="bg-gray-800 text-white p-3 rounded-lg inline-block max-w-xl">
+                                                    {msg.message}
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="bg-gray-800 p-4 border-t border-gray-700">
+                            <div className="flex gap-2">
+                                <input 
+                                    type="text" 
+                                    placeholder="Type a message..."
+                                    value={newMessage}
+                                    onChange={(e) => setNewMessage(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                                    className="flex-1 bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 outline-none"
+                                />
+                                <button onClick={sendMessage} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg">
+                                    <i className="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function VolunteerDashboard({ onNavigate }) {
+            const [tab, setTab] = useState('dashboard');
+            const [showPhotoUpload, setShowPhotoUpload] = useState(false);
+            const [showCalendar, setShowCalendar] = useState(false);
+
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    <div className="max-w-md mx-auto bg-white min-h-screen shadow-xl">
+                        <div className="bg-green-600 text-white p-4 flex justify-between items-center">
+                            <button onClick={() => onNavigate('landing')} className="text-white">
+                                <i className="fas fa-arrow-left text-xl"></i>
+                            </button>
+                            <h1 className="text-xl font-bold">Dashboard</h1>
+                            <i className="fas fa-cog text-xl"></i>
+                        </div>
+
+                        <div className="p-4 pb-24">
+                            {tab === 'dashboard' && (
+                                <>
+                                    <h2 className="text-2xl font-bold mb-2">Welcome, Dan!</h2>
+                                    <p className="text-gray-600 mb-6">Ready to make a difference today?</p>
+
+                                    <div className="bg-gradient-to-r from-green-400 to-green-600 rounded-2xl p-6 text-white mb-6">
+                                        <span className="bg-blue-500 px-3 py-1 rounded-full text-xs mb-3 inline-block">
+                                            <i className="fas fa-map-marker-alt mr-1"></i> 2.3 miles away
+                                        </span>
+                                        <h4 className="text-xl font-bold mb-2">Leaky Faucet Repair</h4>
+                                        <p className="text-sm mb-1">For Maria Garcia</p>
+                                        <p className="text-sm mb-4">Oct 26, 2:00 PM - 123 Main St</p>
+                                        <div className="flex gap-2">
+                                            <button className="bg-white text-green-600 px-4 py-2 rounded-full font-semibold flex-1">
+                                                <i className="fas fa-share-alt mr-2"></i>Share
+                                            </button>
+                                            <button className="bg-white text-green-600 px-4 py-2 rounded-full font-semibold flex-1">
+                                                View Details
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-6">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <h3 className="font-semibold">My Availability</h3>
+                                            <button onClick={() => setShowCalendar(true)} className="text-blue-600 text-sm">
+                                                <i className="fas fa-calendar-alt mr-1"></i>Manage
+                                            </button>
+                                        </div>
+                                        <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-sm font-medium">Recurring Weekly</span>
+                                                <span className="bg-green-500 text-white text-xs px-2 py-1 rounded">Active</span>
+                                            </div>
+                                            <p className="text-sm text-gray-600">Mon, Wed, Fri • 9 AM - 5 PM</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="mb-6">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <h3 className="font-semibold">Upload Project Photos</h3>
+                                            <button onClick={() => setShowPhotoUpload(true)} className="text-blue-600 text-sm">
+                                                <i className="fas fa-camera mr-1"></i>Upload
+                                            </button>
+                                        </div>
+                                        <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-blue-500" onClick={() => setShowPhotoUpload(true)}>
+                                            <i className="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                                            <p className="text-gray-600 text-sm">Tap to upload completed project photos</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
+                                        <div className="flex items-center mb-2">
+                                            <i className="fas fa-trophy text-orange-500 text-2xl mr-3"></i>
+                                            <div>
+                                                <h4 className="font-semibold">18 Tasks Completed</h4>
+                                                <p className="text-sm text-gray-600">You're making a real impact!</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t flex justify-around py-3">
+                            {[['dashboard', 'th-large', 'Dashboard'], ['jobs', 'wrench', 'My Jobs'], ['messages', 'comment-dots', 'Messages'], ['profile', 'user', 'Profile']].map(([name, icon, label]) => (
+                                <button key={name} onClick={() => setTab(name)} className={`flex flex-col items-center ${tab === name ? 'text-blue-600' : 'text-gray-600'}`}>
+                                    <i className={`fas fa-${icon} text-xl mb-1`}></i>
+                                    <span className="text-xs">{label}</span>
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Photo Upload Modal */}
+                        {showPhotoUpload && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowPhotoUpload(false)}>
+                                <div className="bg-white rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+                                    <h3 className="text-xl font-bold mb-4">Upload Project Photos</h3>
+                                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center mb-4">
+                                        <i className="fas fa-camera text-5xl text-gray-400 mb-3"></i>
+                                        <p className="text-gray-600 mb-2">Click to select photos</p>
+                                        <p className="text-sm text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                                    </div>
+                                    <textarea placeholder="Add a description..." rows="3" className="w-full px-4 py-3 border rounded-lg mb-4"></textarea>
+                                    <label className="flex items-center mb-4">
+                                        <input type="checkbox" className="mr-2" defaultChecked />
+                                        <span className="text-sm">I give permission to display in the Community Gallery</span>
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => setShowPhotoUpload(false)} className="flex-1 bg-gray-200 py-3 rounded-lg">Cancel</button>
+                                        <button className="flex-1 bg-blue-600 text-white py-3 rounded-lg">Upload</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Calendar Modal */}
+                        {showCalendar && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={() => setShowCalendar(false)}>
+                                <div className="bg-white rounded-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+                                    <h3 className="text-xl font-bold mb-4">Manage Availability</h3>
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium mb-2">Set Recurring Weekly</label>
+                                        <select className="w-full px-4 py-3 border rounded-lg mb-2">
+                                            <option>Monday - Friday</option>
+                                            <option>Weekends Only</option>
+                                            <option>Custom Schedule</option>
+                                        </select>
+                                        <div className="flex gap-2">
+                                            <input type="time" defaultValue="09:00" className="flex-1 px-4 py-3 border rounded-lg" />
+                                            <input type="time" defaultValue="17:00" className="flex-1 px-4 py-3 border rounded-lg" />
+                                        </div>
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium mb-2">Block Out Dates</label>
+                                        <input type="date" className="w-full px-4 py-3 border rounded-lg mb-2" />
+                                        <button className="text-blue-600 text-sm">
+                                            <i className="fas fa-plus mr-1"></i>Add Another Date
+                                        </button>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => setShowCalendar(false)} className="flex-1 bg-gray-200 py-3 rounded-lg">Cancel</button>
+                                        <button className="flex-1 bg-blue-600 text-white py-3 rounded-lg">Save Changes</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function ResidentRequest({ onNavigate }) {
+            const [step, setStep] = useState(1);
+            const [formData, setFormData] = useState({
+                taskTitle: '', description: '', category: '', address: '', date: '', urgency: 'medium'
+            });
+
+            return (
+                <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl shadow-xl max-w-md w-full p-8">
+                        <div className="flex items-center mb-6">
+                            <button onClick={() => step > 1 ? setStep(step - 1) : onNavigate('landing')}>
+                                <i className="fas fa-arrow-left text-xl"></i>
+                            </button>
+                            <div className="ml-4 flex-1 text-center">
+                                <div className="font-semibold">Request Help</div>
+                                <div className="text-sm text-gray-500">Step {step} of 4</div>
+                            </div>
+                        </div>
+
+                        <div className="h-1 bg-gray-200 rounded mb-8">
+                            <div className="h-full bg-green-600 rounded transition-all" style={{width: `${(step/4)*100}%`}}></div>
+                        </div>
+
+                        {step === 1 && (
+                            <div>
+                                <h2 className="text-2xl font-bold mb-6">What do you need help with?</h2>
+                                <div className="space-y-4">
+                                    <input type="text" placeholder="Task Title (e.g., Fix Leaky Faucet)" 
+                                        value={formData.taskTitle}
+                                        onChange={(e) => setFormData({...formData, taskTitle: e.target.value})}
+                                        className="w-full px-4 py-3 border rounded-lg" />
+                                    <textarea placeholder="Task Description" rows="4" 
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                        className="w-full px-4 py-3 border rounded-lg"></textarea>
+                                    <select className="w-full px-4 py-3 border rounded-lg"
+                                        value={formData.category}
+                                        onChange={(e) => setFormData({...formData, category: e.target.value})}>
+                                        <option>Select a category</option>
+                                        <option>Home Repair</option>
+                                        <option>Gardening</option>
+                                        <option>Pet Care</option>
+                                        <option>Shopping</option>
+                                        <option>Transportation</option>
+                                    </select>
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 2 && (
+                            <div>
+                                <h2 className="text-2xl font-bold mb-4">Your Needs & Circumstances</h2>
+                                <p className="text-gray-600 mb-6">To help us match you with the right volunteer.</p>
+                                <div className="space-y-3">
+                                    {['I lack the necessary skills', 'I have a physical limitation', "I don't have the tools", 'Financial constraint'].map((need, i) => (
+                                        <label key={i} className="flex items-start p-3 border rounded-lg cursor-pointer">
+                                            <input type="checkbox" className="mt-1 mr-3" />
+                                            <span className="text-sm">{need}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 3 && (
+                            <div>
+                                <h2 className="text-2xl font-bold mb-6">When & Where?</h2>
+                                <div className="space-y-4">
+                                    <input type="text" placeholder="Full Address" 
+                                        value={formData.address}
+                                        onChange={(e) => setFormData({...formData, address: e.target.value})}
+                                        className="w-full px-4 py-3 border rounded-lg" />
+                                    <input type="datetime-local" 
+                                        value={formData.date}
+                                        onChange={(e) => setFormData({...formData, date: e.target.value})}
+                                        className="w-full px-4 py-3 border rounded-lg" />
+                                    <label className="flex items-center">
+                                        <input type="checkbox" className="mr-3" />
+                                        <span>Are the dates flexible?</span>
+                                    </label>
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 4 && (
+                            <div>
+                                <h2 className="text-2xl font-bold mb-6">Any Specifics?</h2>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">Urgency Level</label>
+                                        <div className="flex gap-2">
+                                            {['Low', 'Medium', 'High'].map((level) => (
+                                                <button key={level} 
+                                                    onClick={() => setFormData({...formData, urgency: level.toLowerCase()})}
+                                                    className={`flex-1 py-3 border-2 rounded-lg ${formData.urgency === level.toLowerCase() ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}>
+                                                    {level}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer">
+                                        <i className="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                                        <p className="text-gray-600">Add Photos (Optional)</p>
+                                    </div>
+                                    <label className="flex items-center">
+                                        <input type="checkbox" className="mr-3" />
+                                        <span>Is there a pet in the home?</span>
+                                    </label>
+                                </div>
+                            </div>
+                        )}
+
+                        <button 
+                            onClick={() => step < 4 ? setStep(step + 1) : (alert('Request submitted!'), onNavigate('resident-dashboard'))} 
+                            className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-full text-lg font-semibold mt-8"
+                        >
+                            {step === 4 ? 'Submit Request' : 'Continue'}
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        function ResidentDashboard({ onNavigate }) {
+            const [tab, setTab] = useState('active');
+            const tasks = [
+                { id: 1, title: 'Fix Leaky Faucet', category: 'Home Repair', status: 'Matched', date: 'Oct 26, 2:00 PM', image: '🔧' },
+                { id: 2, title: 'Yard Cleanup', category: 'Gardening', status: 'Pending', date: 'Searching...', image: '🌳' },
+                { id: 3, title: 'Pet Sitting', category: 'Pet Care', status: 'Completed', date: 'June 13', image: '🐕' }
+            ];
+
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    <div className="max-w-md mx-auto bg-white min-h-screen shadow-xl">
+                        <div className="border-b p-4 flex justify-between items-center">
+                            <div className="flex items-center">
+                                <button onClick={() => onNavigate('landing')} className="mr-3">
+                                    <i className="fas fa-arrow-left text-xl"></i>
+                                </button>
+                                <h1 className="text-xl font-bold">My Requests</h1>
+                            </div>
+                            <i className="fas fa-bell text-xl"></i>
+                        </div>
+
+                        <div className="flex border-b">
+                            {['active', 'pending', 'completed'].map((t) => (
+                                <button key={t} onClick={() => setTab(t)} className={`flex-1 py-3 text-sm font-medium ${tab === t ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}>
+                                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="p-4 pb-24">
+                            <div className="space-y-4">
+                                {tasks.map((task) => (
+                                    <div key={task.id} className="bg-white border rounded-xl p-4">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div>
+                                                <span className="text-xs text-gray-500">{task.category}</span>
+                                                <h3 className="font-bold text-lg">{task.title}</h3>
+                                            </div>
+                                            <div className="text-3xl">{task.image}</div>
+                                        </div>
+                                        <div className={`text-sm mb-2 status-${task.status.toLowerCase()}`}>
+                                            {task.status}
+                                        </div>
+                                        <p className="text-sm text-gray-600">{task.date}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <button onClick={() => onNavigate('resident-request')} className="fixed bottom-20 right-4 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center">
+                            <i className="fas fa-plus text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        function AboutPage({ onNavigate }) {
+            return (
+                <div className="min-h-screen bg-white">
+                    <Navigation onNavigate={onNavigate} currentPage="about" />
+                    <div className="max-w-4xl mx-auto px-4 py-12">
+                        <div className="text-center mb-12">
+                            <h1 className="text-4xl font-bold mb-4">About Us</h1>
+                            <div className="text-8xl mb-8">👥</div>
+                        </div>
+                        <div className="prose max-w-none">
+                            <h2 className="text-3xl font-bold mb-4">Building Community One Helping Hand at a Time.</h2>
+                            <p className="text-gray-700 text-lg mb-6">HandyMatches.com is a non-profit platform connecting skilled volunteers with neighbors who need a hand.</p>
+                            <div className="bg-blue-50 rounded-2xl p-8">
+                                <h3 className="text-2xl font-bold mb-4">Our Mission</h3>
+                                <p className="text-gray-700">To foster stronger, more connected neighborhoods by providing a simple and safe platform.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function ContactPage({ onNavigate }) {
+            return (
+                <div className="min-h-screen bg-white">
+                    <Navigation onNavigate={onNavigate} currentPage="contact" />
+                    <div className="max-w-2xl mx-auto px-4 py-12">
+                        <div className="text-center mb-12">
+                            <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
+                            <p className="text-xl text-gray-600">Have a question or need support? We'd love to hear from you.</p>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-lg p-8">
+                            <div className="space-y-6">
+                                <input type="text" placeholder="Full Name" className="w-full px-4 py-3 border rounded-lg" />
+                                <input type="email" placeholder="Email Address" className="w-full px-4 py-3 border rounded-lg" />
+                                <textarea placeholder="Your message..." rows="6" className="w-full px-4 py-3 border rounded-lg"></textarea>
+                                <button className="w-full bg-blue-600 text-white py-4 rounded-full text-lg font-semibold">Send Message</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function GalleryPage({ onNavigate }) {
+            const gallery = [
+                { id: 1, title: 'Garden cleanup for Mrs. Davis', image: '🌳' },
+                { id: 2, title: 'Fix leaky faucet', image: '🔧' },
+                { id: 3, title: 'Painting the fence', image: '🎨' },
+                { id: 4, title: 'Dog walking', image: '🐕' },
+                { id: 5, title: 'Installing window', image: '🪟' },
+                { id: 6, title: 'Planting flowers', image: '🌸' }
+            ];
+
+            return (
+                <div className="min-h-screen bg-white">
+                    <Navigation onNavigate={onNavigate} currentPage="gallery" />
+                    <div className="max-w-7xl mx-auto px-4 py-12">
+                        <div className="text-center mb-12">
+                            <h1 className="text-4xl font-bold mb-4">Community Project Gallery</h1>
+                            <p className="text-xl text-gray-600 mb-8">Celebrating the impact of our volunteers</p>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {gallery.map((item) => (
+                                <div key={item.id} className="aspect-square">
+                                    <div className="relative w-full h-full bg-gradient-to-br from-blue-100 to-green-100 rounded-2xl overflow-hidden cursor-pointer hover:scale-105 transition">
+                                        <div className="absolute inset-0 flex items-center justify-center text-6xl">{item.image}</div>
+                                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                                            <p className="text-white text-sm font-medium">{item.title}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function DonatePage({ onNavigate }) {
+            const [amount, setAmount] = useState(50);
+            return (
+                <div className="min-h-screen bg-white">
+                    <Navigation onNavigate={onNavigate} currentPage="donate" />
+                    <div className="max-w-2xl mx-auto px-4 py-12">
+                        <div className="text-center mb-8">
+                            <div className="text-8xl mb-6">💰</div>
+                            <h1 className="text-4xl font-bold mb-4">Support Our Mission</h1>
+                            <p className="text-gray-600">Your donation empowers our volunteers to help community members in need.</p>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-lg p-8">
+                            <div className="space-y-4 mb-6">
+                                {[[25, 'Fund materials for home repairs'], [50, 'Background checks for volunteers', true], [100, 'Platform operating costs']].map(([val, desc, popular]) => (
+                                    <label key={val} onClick={() => setAmount(val)} className={`block p-4 border-2 rounded-xl cursor-pointer relative ${amount === val ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}>
+                                        {popular && <span className="absolute -top-3 right-4 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold">Most Popular</span>}
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <div className="font-bold text-2xl">${val} <span className="text-sm font-normal text-gray-600">one-time</span></div>
+                                                <div className="text-sm text-gray-600 mt-1">{desc}</div>
+                                            </div>
+                                            <input type="radio" checked={amount === val} onChange={() => {}} />
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                            <button className="w-full bg-blue-600 text-white py-4 rounded-full text-lg font-semibold">Donate ${amount}</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
