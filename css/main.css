@@ -88,6 +88,52 @@
     object-fit: cover;
 }
 
+/* Status Badge Styles */
+.status-pending { 
+    background: #fef3c7; 
+    color: #92400e; 
+    padding: 4px 12px; 
+    border-radius: 12px; 
+    font-size: 12px; 
+    font-weight: 600; 
+}
+
+.status-active { 
+    background: #d1fae5; 
+    color: #065f46; 
+    padding: 4px 12px; 
+    border-radius: 12px; 
+    font-size: 12px; 
+    font-weight: 600; 
+}
+
+.status-completed { 
+    background: #dbeafe; 
+    color: #1e40af; 
+    padding: 4px 12px; 
+    border-radius: 12px; 
+    font-size: 12px; 
+    font-weight: 600; 
+}
+
+.status-flagged { 
+    background: #fee2e2; 
+    color: #991b1b; 
+    padding: 4px 12px; 
+    border-radius: 12px; 
+    font-size: 12px; 
+    font-weight: 600; 
+}
+
+.status-inactive {
+    background: #e5e7eb;
+    color: #374151;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
 /* Photo Gallery Grid */
 .photo-grid {
     display: grid;
