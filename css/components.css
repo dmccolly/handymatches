@@ -253,3 +253,15 @@ input:checked + .toggle-slider {
 input:checked + .toggle-slider:before {
     transform: translateX(1.5rem);
 }
+
+/* Mobile Menu Override - ensure mobile menu is visible when open */
+nav.mobile-menu-open {
+    display: block !important;
+}
+
+/* Ensure mobile menu button is visible on small screens */
+@media (max-width: 767px) {
+    .mobile-menu-toggle {
+        display: block !important;
+    }
+}
